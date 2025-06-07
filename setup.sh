@@ -1,33 +1,23 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -e
 
-# Update package list
-sudo apt update && sudo apt upgrade -y
+sudo apt update
 
-# Install PHP and needed extensions
-sudo apt install -y php php-cli php-mbstring php-curl php-xml php-bcmath
+sudo apt install -y erlang-nox rabbitmq-server php8.3-cli php8.3-amqp php8.3-bcmath php8.3-mbstring git curl unzip
 
-# Install Composer if not available
-if ! [ -x "$(command -v composer)" ]; then
-    curl -sS https://getcomposer.org/installer | php
-    sudo mv composer.phar /usr/local/bin/composer
-fi
-
-# Install RabbitMQ
-sudo apt install -y rabbitmq-server
-
-# Start and enable RabbitMQ
 sudo systemctl enable rabbitmq-server
+
 sudo systemctl start rabbitmq-server
 
-# Enable and start SSH (if not already running)
-sudo apt install -y openssh-server
-sudo systemctl enable ssh
-sudo systemctl start ssh
+sudo apt install -y composer
 
-# Go to project folder and install PHP dependencies
-cd ~/IT490
-if [ ! -d "vendor" ]; then
-    composer install
+PROJECT_DIR="$HOME/IT490"
+if [ ! -d "$PROJECT_DIR" ]; then
+  git clone https://github.com/MattToegel/IT490.git "$PROJECT_DIR"
 fi
+cd "$PROJECT_DIR"
+sed -i 's/"type":[[:space:]]*"[^"]\+"/"type": "project"/' composer.json
+composer install --no-interaction --prefer-dist
+[ -f "$PROJECT_DIR/vendor/autoload.php" ] || { echo "Missing vendor/autoload.php" >&2; exit 1; }
 
-echo "✅ Setup completed successfully!"
+echo "Setup complete."
